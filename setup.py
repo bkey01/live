@@ -100,7 +100,7 @@ async def auto_like():
     while True:
         try:
             print("❤️ Mengirim like ke live...")
-            await asyncio.sleep(5)
+            await asyncio.sleep(1)
         except asyncio.CancelledError:
             break
 

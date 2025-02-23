@@ -102,7 +102,7 @@
                 return;
             }
             
-            ws = new WebSocket("wss://chat-read-production.up.railway.app");
+            ws = new WebSocket("wss://live-port8765.up.railway.app");
             ws.onopen = () => {
                 console.log("WebSocket Terhubung");
                 ws.send(username); // Kirim username ke server
