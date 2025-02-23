@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TikTok Live Chat</title>
-    <title>created by KEy</title>
     <style>
         body {
             font-family: 'Poppins', sans-serif;
@@ -33,23 +32,22 @@
             flex-direction: column;
             align-items: center;
         }
-        .stats-box {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
+        #stats-container {
+            display: flex;
+            justify-content: space-between;
             width: 100%;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
-        .stat-item {
+        .stat-box {
+            width: 48%;
             background: rgba(255, 255, 255, 0.1);
             padding: 10px;
             border-radius: 8px;
             font-size: 16px;
-            text-align: center;
         }
-        #leaderboard, #chat-box, #goal-box, #error-box {
+        #chat-box {
             width: 100%;
-            height: 200px;
+            height: 300px;
             border-radius: 8px;
             background: rgba(255, 255, 255, 0.1);
             overflow-y: auto;
@@ -58,17 +56,6 @@
             text-align: left;
             font-size: 14px;
             margin-top: 10px;
-        }
-        .chat-message {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 5px;
-        }
-        .chat-message img {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
         }
         input, button {
             padding: 10px;
@@ -97,28 +84,13 @@
 <body>
     <div id="container">
         <h1>Live Chat TikTok</h1>
-        <h1>created by KEy</h1>
         <input type="text" id="username" placeholder="Masukkan username TikTok">
         <button onclick="connectToLive()">Hubungkan</button>
-        
-        <div class="stats-box">
-            <div class="stat-item">Total Likes: <span id="total-likes">0</span></div>
-            <div class="stat-item">Total Gifts: <span id="total-gifts">0</span></div>
-            <div class="stat-item">Total Shares: <span id="total-shares">0</span></div>
-            <div class="stat-item">Top Rank Live: <span id="top-rank">-</span></div>
+        <div id="stats-container">
+            <div class="stat-box">Total Like: <span id="total-likes">0</span></div>
+            <div class="stat-box">Total Gift: <span id="total-gifts">0</span></div>
         </div>
-        
-        <h3>Leaderboard Gift</h3>
-        <div id="leaderboard"></div>
-        
-        <h3>Goal Progress</h3>
-        <div id="goal-box"></div>
-        
-        <h3>Chat</h3>
         <div id="chat-box"></div>
-
-        <h3>Error Log</h3>
-        <div id="error-box"></div>
     </div>
 
     <script>
@@ -133,48 +105,32 @@
             ws = new WebSocket("wss://live-port8765.up.railway.app");
             ws.onopen = () => {
                 console.log("WebSocket Terhubung");
-                ws.send(username);
+                ws.send(username); // Kirim username ke server
             };
             
             ws.onmessage = (event) => {
                 const chatBox = document.getElementById('chat-box');
-                const leaderboard = document.getElementById('leaderboard');
-                const goalBox = document.getElementById('goal-box');
-                let data = JSON.parse(event.data);
-
-                if (data.type === "chat") {
-                    const message = document.createElement('div');
-                    message.classList.add('chat-message');
-                    message.innerHTML = `<img src="${data.profile}" alt="P"> <span>${data.user}: ${data.message}</span>`;
-                    chatBox.appendChild(message);
+                const message = document.createElement('p');
+                message.textContent = event.data;
+                chatBox.appendChild(message);
+                chatBox.scrollTop = chatBox.scrollHeight;
+                
+                if (event.data.startsWith("Likes:")) {
+                    document.getElementById("total-likes").textContent = event.data.split(": ")[1];
                 }
-
-                if (data.type === "stats") {
-                    document.getElementById("total-likes").textContent = data.likes;
-                    document.getElementById("total-gifts").textContent = data.gifts;
-                    document.getElementById("total-shares").textContent = data.shares;
-                    document.getElementById("top-rank").textContent = data.rank;
-                }
-
-                if (data.type === "goal_update") {
-                    goalBox.innerHTML = `🎯 Target: ${data.goal_description} | Progress: ${data.goal_progress}/${data.goal_target}`;
-                }
-
-                if (data.type === "status" && data.message.includes("Live telah berakhir")) {
-                    alert(data.message);
+                if (event.data.startsWith("Gifts:")) {
+                    document.getElementById("total-gifts").textContent = event.data.split(": ")[1];
                 }
             };
             
             ws.onerror = (error) => {
                 console.error("WebSocket Error: ", error);
-                document.getElementById("error-box").innerHTML += `<p>❌ WebSocket Error: ${error.message}</p>`;
             };
             
             ws.onclose = () => {
                 console.log("WebSocket Terputus");
-                document.getElementById("error-box").innerHTML += `<p>⚠️ WebSocket Terputus</p>`;
             };
         }
-    </script> 
+    </script>
 </body>
 </html>

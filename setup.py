@@ -2,112 +2,104 @@ import asyncio
 import random
 import time
 import websockets
-import json
 from TikTokLive import TikTokLiveClient
-from TikTokLive.events import (
-    CommentEvent, ConnectEvent, DisconnectEvent, GiftEvent, FollowEvent, JoinEvent,
-    LikeEvent, ShareEvent, RankUpdateEvent, GoalUpdateEvent, LiveEndEvent
-)
+from TikTokLive.events import CommentEvent, ConnectEvent, DisconnectEvent, GiftEvent, FollowEvent, JoinEvent, LikeEvent
 
 USERNAME = ""
 client = None
 websockets_clients = set()
-FILTERED_WORDS = ["kontol", "bego", "nub", "beban", "yatim"]
-AUTO_REPLY = {"halo": "Hai! Selamat datang di live 🥰", "semangat": "Semangat juga buat kamu! 💪", "bot?": "Yap, aku bot 😊", "hai": "hai juga kamu 🤗"}
-MOTIVATIONAL_QUOTES = ["Jangan menyerah!", "Tetap semangat!", "Sukses butuh proses!"]
+FILTERED_WORDS = ["kasar1", "kasar2", "spam"]
+AUTO_REPLY = {
+    "halo": "Hai! Selamat datang di live 🥰",
+    "semangat": "Semangat juga buat kamu! 💪",
+    "bot?": "Yap, aku bot yang membantu membaca komentar 😊"
+}
+MOTIVATIONAL_QUOTES = [
+    "Jangan pernah menyerah, sukses butuh proses!",
+    "Tetaplah berjuang, hasil tidak akan mengkhianati usaha!",
+    "Hari ini sulit, besok akan lebih baik!"
+]
 LEADERBOARD = {}
 TOTAL_LIKES = 0
 TOTAL_GIFTS = 0
-TOTAL_SHARES = 0
-TOP_GIFT_USER = ""
-TOP_LIVE_RANK = 0
-GOAL_DESCRIPTION = ""
-GOAL_PROGRESS = 0
-GOAL_TARGET = 0
 START_TIME = time.time()
 
 def create_client(username):
     global client
     client = TikTokLiveClient(unique_id=username)
-
+    
     @client.on(ConnectEvent)
     async def on_connect(event: ConnectEvent):
-        print("✅ Bot terhubung ke Live TikTok!")
-        await broadcast({"type": "status", "message": "Bot terhubung ke live!"})
-        asyncio.create_task(auto_like())  # Mulai Auto Like saat bot terhubung
-
+        print("✅ Bot berhasil terhubung ke Live TikTok!")
+        await broadcast("Bot terhubung ke live!")
+        asyncio.create_task(auto_like())
+    
     @client.on(JoinEvent)
     async def on_join(event: JoinEvent):
-        await broadcast({"type": "join", "user": event.user.nickname})
-
+        user = event.user.nickname
+        print(f"👋 {user} bergabung ke live!")
+        await broadcast(f"{user} bergabung ke live!")
+    
     @client.on(FollowEvent)
     async def on_follow(event: FollowEvent):
-        await broadcast({"type": "follow", "user": event.user.nickname})
-
+        user = event.user.nickname
+        print(f"🎉 {user} telah mengikuti live!")
+        await broadcast(f"{user} telah mengikuti live!")
+    
     @client.on(CommentEvent)
     async def on_comment(event: CommentEvent):
+        user = event.user.nickname
         comment = event.comment.lower()
         if any(word in comment for word in FILTERED_WORDS):
+            print(f"🚫 {user} mengirim komentar terlarang: {event.comment}")
             return
         
-        response = AUTO_REPLY.get(comment, None)
-        if response:
-            await broadcast({"type": "chat", "user": event.user.nickname, "message": response, "profile_pic": event.user.profile_picture.url})
-            return
+        for key, response in AUTO_REPLY.items():
+            if key in comment:
+                print(f"💬 Auto-reply ke {user}: {response}")
+                await broadcast(f"Auto-reply ke {user}: {response}")
         
-        await broadcast({"type": "chat", "user": event.user.nickname, "message": event.comment, "profile_pic": event.user.profile_picture.url})
-
+        if comment == "!quote":
+            quote = random.choice(MOTIVATIONAL_QUOTES)
+            await broadcast(f"{user}, {quote}")
+        
+        if comment == "!leaderboard":
+            leaderboard_message = "📊 Leaderboard Gift:\n"
+            for user, count in sorted(LEADERBOARD.items(), key=lambda x: x[1], reverse=True):
+                leaderboard_message += f"{user}: {count} gift\n"
+            await broadcast(leaderboard_message if LEADERBOARD else "Leaderboard masih kosong!")
+        
+        if comment == "!durasi":
+            elapsed_time = int(time.time() - START_TIME) // 60
+            await broadcast(f"⏳ Live sudah berlangsung selama {elapsed_time} menit.")
+        
+        print(f"💬 {user}: {event.comment}")
+        await broadcast(f"{user}: {event.comment}")
+    
     @client.on(GiftEvent)
     async def on_gift(event: GiftEvent):
-        global TOTAL_GIFTS, TOP_GIFT_USER
+        global TOTAL_GIFTS
         user = event.user.nickname
+        gift_name = event.gift.name
+        print(f"🎁 {user} mengirim gift: {gift_name}")
         LEADERBOARD[user] = LEADERBOARD.get(user, 0) + 1
         TOTAL_GIFTS += 1
-        TOP_GIFT_USER = max(LEADERBOARD, key=LEADERBOARD.get)
-        await broadcast({"type": "gift", "user": user, "gift_name": event.gift.name, "total_gifts": TOTAL_GIFTS, "top_gifter": TOP_GIFT_USER})
+        await broadcast(f"🎁 {user} mengirim gift: {gift_name}")
+        await broadcast(f"Gifts: {TOTAL_GIFTS}")
     
     @client.on(LikeEvent)
     async def on_like(event: LikeEvent):
         global TOTAL_LIKES
         TOTAL_LIKES += event.count
-        await broadcast({"type": "likes", "total_likes": TOTAL_LIKES})
+        print(f"❤️ Total likes: {TOTAL_LIKES}")
+        await broadcast(f"Likes: {TOTAL_LIKES}")
     
-    @client.on(ShareEvent)
-    async def on_share(event: ShareEvent):
-        global TOTAL_SHARES
-        TOTAL_SHARES += 1
-        await broadcast({"type": "shares", "total_shares": TOTAL_SHARES})
-    
-    @client.on(RankUpdateEvent)
-    async def on_rank_update(event: RankUpdateEvent):
-        global TOP_LIVE_RANK
-        TOP_LIVE_RANK = event.rank
-        await broadcast({"type": "live_rank", "top_live_rank": TOP_LIVE_RANK})
-
-    @client.on(GoalUpdateEvent)
-    async def on_goal_update(event: GoalUpdateEvent):
-        global GOAL_DESCRIPTION, GOAL_PROGRESS, GOAL_TARGET
-        GOAL_DESCRIPTION = event.goal.description
-        GOAL_PROGRESS = event.goal.progress
-        GOAL_TARGET = event.goal.target
-        await broadcast({
-            "type": "goal_update",
-            "goal_description": GOAL_DESCRIPTION,
-            "goal_progress": GOAL_PROGRESS,
-            "goal_target": GOAL_TARGET
-        })
-
-    @client.on(LiveEndEvent)
-    async def on_live_end(event: LiveEndEvent):
-        await broadcast({"type": "status", "message": "❌ Live telah berakhir! Sampai jumpa di live berikutnya!"})
-
     asyncio.create_task(client.start())
 
 async def auto_like():
     while True:
         try:
             print("❤️ Mengirim like ke live...")
-            await broadcast({"type": "likes", "message": "Mengirim like ke live..."})
             await asyncio.sleep(1)
         except asyncio.CancelledError:
             break
@@ -129,13 +121,11 @@ async def websocket_server():
 
     async with websockets.serve(handler, "0.0.0.0", 8765):
         await asyncio.Future()
-        
-async def broadcast(data):
+
+async def broadcast(message):
     if websockets_clients:
-        message = json.dumps(data)
-        print(f"📤 Mengirim data: {message}")
         await asyncio.wait([asyncio.create_task(client.send(message)) for client in websockets_clients])
-        
+
 if __name__ == "__main__":
     try:
         asyncio.run(websocket_server())
