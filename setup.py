@@ -104,12 +104,11 @@ def create_client(username):
     asyncio.create_task(client.start())
 
 async def auto_like():
-    """Mengirim auto like ke live setiap beberapa detik."""
     while True:
         try:
             print("❤️ Mengirim like ke live...")
             await broadcast({"type": "likes", "message": "Mengirim like ke live..."})
-            await asyncio.sleep(1)  # Setiap 5 detik
+            await asyncio.sleep(1)
         except asyncio.CancelledError:
             break
 
@@ -121,6 +120,7 @@ async def websocket_server():
             async for message in websocket:
                 if not USERNAME:
                     USERNAME = message
+                    print(f"🔗 Username diterima: {USERNAME}")
                     create_client(USERNAME)
                 else:
                     print(f"📩 Pesan dari client: {message}")
@@ -129,12 +129,13 @@ async def websocket_server():
 
     async with websockets.serve(handler, "0.0.0.0", 8765):
         await asyncio.Future()
-
+        
 async def broadcast(data):
     if websockets_clients:
         message = json.dumps(data)
+        print(f"📤 Mengirim data: {message}")
         await asyncio.wait([asyncio.create_task(client.send(message)) for client in websockets_clients])
-
+        
 if __name__ == "__main__":
     try:
         asyncio.run(websocket_server())
