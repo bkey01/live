@@ -47,7 +47,7 @@
             font-size: 16px;
             text-align: center;
         }
-        #leaderboard, #chat-box, #goal-box {
+        #leaderboard, #chat-box, #goal-box, #error-box {
             width: 100%;
             height: 200px;
             border-radius: 8px;
@@ -116,6 +116,9 @@
         
         <h3>Chat</h3>
         <div id="chat-box"></div>
+
+        <h3>Error Log</h3>
+        <div id="error-box"></div>
     </div>
 
     <script>
@@ -153,15 +156,6 @@
                     document.getElementById("top-rank").textContent = data.rank;
                 }
 
-                if (data.type === "leaderboard") {
-                    leaderboard.innerHTML = "";
-                    data.leaderboard.forEach(user => {
-                        const entry = document.createElement('p');
-                        entry.innerHTML = `<strong>${user.name}</strong>: ${user.gifts} gifts`;
-                        leaderboard.appendChild(entry);
-                    });
-                }
-
                 if (data.type === "goal_update") {
                     goalBox.innerHTML = `🎯 Target: ${data.goal_description} | Progress: ${data.goal_progress}/${data.goal_target}`;
                 }
@@ -173,10 +167,12 @@
             
             ws.onerror = (error) => {
                 console.error("WebSocket Error: ", error);
+                document.getElementById("error-box").innerHTML += `<p>❌ WebSocket Error: ${error.message}</p>`;
             };
             
             ws.onclose = () => {
                 console.log("WebSocket Terputus");
+                document.getElementById("error-box").innerHTML += `<p>⚠️ WebSocket Terputus</p>`;
             };
         }
     </script> 
