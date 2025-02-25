@@ -69,37 +69,56 @@
             background: #e68900;
         }
 
-        /* Animasi pesan */
+        /* Chatbox */
+        #chatbox {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 300px;
+            max-height: 300px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 10px;
+            overflow-y: auto;
+            text-align: left;
+        }
+        .chat-message {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        .chat-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .chat-text {
+            color: white;
+            font-weight: bold;
+        }
+
+        /* Animasi Floating Pesan */
         @keyframes floating {
             0% { transform: translateY(0px) scale(1); }
             50% { transform: translateY(-10px) scale(1.1); }
             100% { transform: translateY(0px) scale(1); }
         }
-
-        .chat-message {
+        .floating-message {
             position: absolute;
-            display: flex;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 10px;
+            background: rgba(255, 255, 255, 0.3);
+            padding: 12px;
             border-radius: 12px;
-            font-size: 14px;
+            font-size: 16px;
+            color: white;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+            animation: floating 2s infinite ease-in-out;
             opacity: 0;
             transition: opacity 0.5s ease-in-out;
-            animation: floating 2s infinite ease-in-out;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
-        }
-
-        .chat-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            margin-right: 10px;
-        }
-
-        .chat-text {
-            color: white;
-            font-weight: bold;
         }
     </style>
 </head>
@@ -114,6 +133,11 @@
         </div>
     </div>
 
+    <div id="chatbox">
+        <h3>Live Chat</h3>
+        <div id="messages"></div>
+    </div>
+
     <audio id="messageSound" src="notif.mp3"></audio>
 
     <script>
@@ -125,49 +149,38 @@
                 return;
             }
             
-            ws = new WebSocket("wss://live-port8765.up.railway.app");
+            ws = new WebSocket("ws://localhost:8765");
             ws.onopen = () => {
                 console.log("WebSocket Terhubung");
                 ws.send(username);
             };
             
             ws.onmessage = (event) => {
-                const data = event.data.split("|");
-                const avatarUrl = data[0] || "default-avatar.png";
-                const messageContent = data[1] || "Pesan tidak terbaca";
+                console.log("Pesan diterima:", event.data);
+                const [avatarUrl, username, messageContent] = event.data.split("|");
+                if (!username || !messageContent) return;
 
+                // Tambahkan ke chatbox
                 const chatMessage = document.createElement('div');
                 chatMessage.classList.add('chat-message');
 
                 const avatarImg = document.createElement('img');
                 avatarImg.classList.add('chat-avatar');
-                avatarImg.src = avatarUrl;
+                avatarImg.src = avatarUrl || "default_avatar.png";
 
                 const chatText = document.createElement('div');
                 chatText.classList.add('chat-text');
-                chatText.textContent = messageContent;
+                chatText.innerHTML = `<b>${username}:</b> ${messageContent}`;
 
                 chatMessage.appendChild(avatarImg);
                 chatMessage.appendChild(chatText);
-                document.body.appendChild(chatMessage);
 
-                // Atur posisi awal secara acak
-                const { x, y } = getRandomPosition();
-                chatMessage.style.left = `${x}px`;
-                chatMessage.style.top = `${y}px`;
-                chatMessage.style.opacity = 1;
+                document.getElementById("messages").appendChild(chatMessage);
 
-                // Gerakkan pesan bolak-balik
-                moveChatMessage(chatMessage);
+                // Tambahkan efek pesan melayang
+                createFloatingMessage(username, messageContent);
 
-                // Putar suara notifikasi
                 document.getElementById("messageSound").play();
-
-                // Hapus setelah beberapa detik
-                setTimeout(() => {
-                    chatMessage.style.opacity = 0;
-                    setTimeout(() => chatMessage.remove(), 500);
-                }, 5000);
             };
 
             ws.onerror = (error) => {
@@ -179,29 +192,30 @@
             };
         }
 
-        function getRandomPosition() {
-            const maxWidth = window.innerWidth - 300; 
-            const maxHeight = window.innerHeight - 100;
-            return {
-                x: Math.random() * maxWidth,
-                y: Math.random() * maxHeight
-            };
+        function createFloatingMessage(username, messageContent) {
+            const floatingMessage = document.createElement("div");
+            floatingMessage.classList.add("floating-message");
+            floatingMessage.innerHTML = `<b>${username}:</b> ${messageContent}`;
+            
+            // Posisi acak
+            const { x, y } = getRandomPosition();
+            floatingMessage.style.left = `${x}px`;
+            floatingMessage.style.top = `${y}px`;
+            floatingMessage.style.opacity = 1;
+
+            document.body.appendChild(floatingMessage);
+
+            setTimeout(() => {
+                floatingMessage.style.opacity = 0;
+                setTimeout(() => floatingMessage.remove(), 500);
+            }, 5000);
         }
 
-        function moveChatMessage(element) {
-            let direction = Math.random() > 0.5 ? 1 : -1;
-            let speed = Math.random() * 2 + 1; 
-
-            setInterval(() => {
-                let left = parseFloat(element.style.left) || 0;
-                left += direction * speed;
-
-                if (left >= window.innerWidth - 300 || left <= 0) {
-                    direction *= -1;
-                }
-
-                element.style.left = left + "px";
-            }, 20);
+        function getRandomPosition() {
+            return {
+                x: Math.random() * (window.innerWidth - 200),
+                y: Math.random() * (window.innerHeight - 100)
+            };
         }
     </script>
 </body>
