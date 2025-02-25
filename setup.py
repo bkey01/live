@@ -8,7 +8,7 @@ from TikTokLive.events import CommentEvent, ConnectEvent, DisconnectEvent, GiftE
 USERNAME = ""
 client = None
 websockets_clients = set()
-FILTERED_WORDS = ["kasar1", "kasar2", "spam"]
+FILTERED_WORDS = ["tolol", "kontol", "spam"]
 AUTO_REPLY = {
     "halo": "Hai! Selamat datang di live 🥰",
     "semangat": "Semangat juga buat kamu! 💪",
@@ -27,73 +27,75 @@ START_TIME = time.time()
 def create_client(username):
     global client
     client = TikTokLiveClient(unique_id=username)
-    
+
     @client.on(ConnectEvent)
     async def on_connect(event: ConnectEvent):
-        print("✅ Bot berhasil terhubung ke Live TikTok!")
-        await broadcast("Bot terhubung ke live!")
+        print("✅ Bot terhubung ke Live TikTok!")
+        await broadcast("default_avatar.png|System|Bot terhubung ke live!")
         asyncio.create_task(auto_like())
-    
+
     @client.on(JoinEvent)
     async def on_join(event: JoinEvent):
         user = event.user.nickname
+        avatar = event.user.avatar_url or "default_avatar.png"
         print(f"👋 {user} bergabung ke live!")
-        await broadcast(f"{user} bergabung ke live!")
-    
+        await broadcast(f"{avatar}|{user}|bergabung ke live!")
+
     @client.on(FollowEvent)
     async def on_follow(event: FollowEvent):
         user = event.user.nickname
+        avatar = event.user.avatar_url or "default_avatar.png"
         print(f"🎉 {user} telah mengikuti live!")
-        await broadcast(f"{user} telah mengikuti live!")
-    
+        await broadcast(f"{avatar}|{user}|telah mengikuti live!")
+
     @client.on(CommentEvent)
     async def on_comment(event: CommentEvent):
         user = event.user.nickname
+        avatar = event.user.avatar_url or "default_avatar.png"
         comment = event.comment.lower()
+
         if any(word in comment for word in FILTERED_WORDS):
-            print(f"🚫 {user} mengirim komentar terlarang: {event.comment}")
+            print(f"🚫 {user} mengirim komentar terlarang.")
             return
-        
+
         for key, response in AUTO_REPLY.items():
             if key in comment:
-                print(f"💬 Auto-reply ke {user}: {response}")
-                await broadcast(f"Auto-reply ke {user}: {response}")
-        
+                await broadcast(f"{avatar}|System|Auto-reply ke {user}: {response}")
+
         if comment == "!quote":
             quote = random.choice(MOTIVATIONAL_QUOTES)
-            await broadcast(f"{user}, {quote}")
-        
+            await broadcast(f"{avatar}|{user}|{quote}")
+
         if comment == "!leaderboard":
-            leaderboard_message = "📊 Leaderboard Gift:\n"
-            for user, count in sorted(LEADERBOARD.items(), key=lambda x: x[1], reverse=True):
-                leaderboard_message += f"{user}: {count} gift\n"
-            await broadcast(leaderboard_message if LEADERBOARD else "Leaderboard masih kosong!")
-        
+            leaderboard_msg = "📊 Leaderboard Gift:\n"
+            leaderboard_msg += "\n".join([f"{u}: {c} gift" for u, c in sorted(LEADERBOARD.items(), key=lambda x: x[1], reverse=True)]) or "Leaderboard masih kosong!"
+            await broadcast(f"{avatar}|System|{leaderboard_msg}")
+
         if comment == "!durasi":
             elapsed_time = int(time.time() - START_TIME) // 60
-            await broadcast(f"⏳ Live sudah berlangsung selama {elapsed_time} menit.")
-        
+            await broadcast(f"{avatar}|System|Live sudah berlangsung selama {elapsed_time} menit.")
+
         print(f"💬 {user}: {event.comment}")
-        await broadcast(f"{user}: {event.comment}")
-    
+        await broadcast(f"{avatar}|{user}|{event.comment}")
+
     @client.on(GiftEvent)
     async def on_gift(event: GiftEvent):
         global TOTAL_GIFTS
         user = event.user.nickname
+        avatar = event.user.avatar_url or "default_avatar.png"
         gift_name = event.gift.name
-        print(f"🎁 {user} mengirim gift: {gift_name}")
-        LEADERBOARD[user] = LEADERBOARD.get(user, 0) + 1
         TOTAL_GIFTS += 1
-        await broadcast(f"🎁 {user} mengirim gift: {gift_name}")
-        await broadcast(f"Gifts: {TOTAL_GIFTS}")
-    
+        print(f"🎁 {user} mengirim gift: {gift_name}")
+        await broadcast(f"{avatar}|{user}|mengirim gift: {gift_name}")
+        await broadcast(f"default_avatar.png|System|Total Gift: {TOTAL_GIFTS}")
+
     @client.on(LikeEvent)
     async def on_like(event: LikeEvent):
         global TOTAL_LIKES
         TOTAL_LIKES += event.count
         print(f"❤️ Total likes: {TOTAL_LIKES}")
-        await broadcast(f"Likes: {TOTAL_LIKES}")
-    
+        await broadcast(f"default_avatar.png|System|Total Likes: {TOTAL_LIKES}")
+
     asyncio.create_task(client.start())
 
 async def auto_like():
