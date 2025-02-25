@@ -25,7 +25,7 @@ TOTAL_GIFTS = 0
 START_TIME = time.time()
 
 def create_client(username):
-    global client # Gunakan signer lokal
+    global client
     client = TikTokLiveClient(unique_id=username)
 
     @client.on(ConnectEvent)
