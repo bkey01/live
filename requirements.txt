@@ -4,3 +4,5 @@ asyncio
 pyee
 betterproto
 httpx
+typing_extensions
+aiohttp

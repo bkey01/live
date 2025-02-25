@@ -1,9 +1,9 @@
 import asyncio
 import random
 import time
-import json
 import websockets
 from TikTokLive import TikTokLiveClient
+from TikTokLive.signing import TikTokLiveSigner
 from TikTokLive.events import CommentEvent, ConnectEvent, GiftEvent, FollowEvent, JoinEvent, LikeEvent
 
 USERNAME = ""
@@ -27,32 +27,29 @@ START_TIME = time.time()
 
 def create_client(username):
     global client
-    client = TikTokLiveClient(unique_id=username)
-    
+    signer = TikTokLiveSigner("http://127.0.0.1:8000")  # Gunakan signer lokal
+    client = TikTokLiveClient(unique_id=username, signer=signer)
+
     @client.on(ConnectEvent)
     async def on_connect(event: ConnectEvent):
         print("✅ Bot berhasil terhubung ke Live TikTok!")
-        await broadcast({"type": "system", "message": "Bot terhubung ke live!"})
-        asyncio.create_task(auto_like())
-    
+        await broadcast("Bot terhubung ke live!")
+
     @client.on(JoinEvent)
     async def on_join(event: JoinEvent):
         user = event.user.nickname
-        avatar = event.user.avatarThumb.url
         print(f"👋 {user} bergabung ke live!")
-        await broadcast({"type": "join", "user": user, "avatar": avatar})
+        await broadcast(f"{user} bergabung ke live!")
 
     @client.on(FollowEvent)
     async def on_follow(event: FollowEvent):
         user = event.user.nickname
-        avatar = event.user.avatarThumb.url
         print(f"🎉 {user} telah mengikuti live!")
-        await broadcast({"type": "follow", "user": user, "avatar": avatar})
+        await broadcast(f"{user} telah mengikuti live!")
 
     @client.on(CommentEvent)
     async def on_comment(event: CommentEvent):
         user = event.user.nickname
-        avatar = event.user.avatarThumb.url
         comment = event.comment.lower()
 
         if any(word in comment for word in FILTERED_WORDS):
@@ -62,53 +59,44 @@ def create_client(username):
         for key, response in AUTO_REPLY.items():
             if key in comment:
                 print(f"💬 Auto-reply ke {user}: {response}")
-                await broadcast({"type": "message", "user": user, "avatar": avatar, "message": response})
+                await broadcast(f"Auto-reply ke {user}: {response}")
 
         if comment == "!quote":
             quote = random.choice(MOTIVATIONAL_QUOTES)
-            await broadcast({"type": "message", "user": user, "avatar": avatar, "message": quote})
+            await broadcast(f"{user}, {quote}")
 
         if comment == "!leaderboard":
             leaderboard_message = "📊 Leaderboard Gift:\n"
             for user, count in sorted(LEADERBOARD.items(), key=lambda x: x[1], reverse=True):
                 leaderboard_message += f"{user}: {count} gift\n"
-            await broadcast({"type": "message", "user": "Bot", "avatar": "", "message": leaderboard_message if LEADERBOARD else "Leaderboard masih kosong!"})
+            await broadcast(leaderboard_message if LEADERBOARD else "Leaderboard masih kosong!")
 
         if comment == "!durasi":
             elapsed_time = int(time.time() - START_TIME) // 60
-            await broadcast({"type": "message", "user": "Bot", "avatar": "", "message": f"⏳ Live sudah berlangsung selama {elapsed_time} menit."})
+            await broadcast(f"⏳ Live sudah berlangsung selama {elapsed_time} menit.")
 
         print(f"💬 {user}: {event.comment}")
-        await broadcast({"type": "message", "user": user, "avatar": avatar, "message": event.comment})
+        await broadcast(f"{user}: {event.comment}")
 
     @client.on(GiftEvent)
     async def on_gift(event: GiftEvent):
         global TOTAL_GIFTS
         user = event.user.nickname
-        avatar = event.user.avatarThumb.url
         gift_name = event.gift.name
         print(f"🎁 {user} mengirim gift: {gift_name}")
         LEADERBOARD[user] = LEADERBOARD.get(user, 0) + 1
         TOTAL_GIFTS += 1
-        await broadcast({"type": "gift", "user": user, "avatar": avatar, "gift": gift_name})
-        await broadcast({"type": "stats", "total_gifts": TOTAL_GIFTS})
+        await broadcast(f"🎁 {user} mengirim gift: {gift_name}")
+        await broadcast(f"Gifts: {TOTAL_GIFTS}")
 
     @client.on(LikeEvent)
     async def on_like(event: LikeEvent):
         global TOTAL_LIKES
         TOTAL_LIKES += event.count
         print(f"❤️ Total likes: {TOTAL_LIKES}")
-        await broadcast({"type": "stats", "total_likes": TOTAL_LIKES})
+        await broadcast(f"Likes: {TOTAL_LIKES}")
 
     asyncio.create_task(client.start())
-
-async def auto_like():
-    while True:
-        try:
-            print("❤️ Mengirim like ke live...")
-            await asyncio.sleep(1)
-        except asyncio.CancelledError:
-            break
 
 async def websocket_server():
     async def handler(websocket):
@@ -130,8 +118,7 @@ async def websocket_server():
 
 async def broadcast(message):
     if websockets_clients:
-        json_message = json.dumps(message)
-        await asyncio.wait([asyncio.create_task(client.send(json_message)) for client in websockets_clients])
+        await asyncio.wait([client.send(message) for client in websockets_clients])
 
 if __name__ == "__main__":
     try:
