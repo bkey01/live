@@ -37,21 +37,21 @@ def create_client(username):
     @client.on(JoinEvent)
     async def on_join(event: JoinEvent):
         user = event.user.nickname
-        avatar = event.user.avatar_url or "default_avatar.png"
+        avatar ="default_avatarj.png"
         print(f"👋 {user} bergabung ke live!")
         await broadcast(f"{avatar}|{user}|bergabung ke live!")
 
     @client.on(FollowEvent)
     async def on_follow(event: FollowEvent):
         user = event.user.nickname
-        avatar = event.user.avatar_url or "default_avatar.png"
+        avatar = "default_avatarf.png"
         print(f"🎉 {user} telah mengikuti live!")
         await broadcast(f"{avatar}|{user}|telah mengikuti live!")
 
     @client.on(CommentEvent)
     async def on_comment(event: CommentEvent):
         user = event.user.nickname
-        avatar = event.user.avatar_url or "default_avatar.png"
+        avatar ="default_avatarc.png"
         comment = event.comment.lower()
 
         if any(word in comment for word in FILTERED_WORDS):
@@ -82,7 +82,7 @@ def create_client(username):
     async def on_gift(event: GiftEvent):
         global TOTAL_GIFTS
         user = event.user.nickname
-        avatar = event.user.avatar_url or "default_avatar.png"
+        avatar ="default_avatar.png"
         gift_name = event.gift.name
         TOTAL_GIFTS += 1
         print(f"🎁 {user} mengirim gift: {gift_name}")
