@@ -16,6 +16,7 @@
             justify-content: center;
             height: 100vh;
             margin: 0;
+            overflow: hidden;
         }
         h1 {
             font-size: 28px;
@@ -45,18 +46,6 @@
             border-radius: 8px;
             font-size: 16px;
         }
-        #chat-box {
-            width: 100%;
-            height: 300px;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            overflow-y: auto;
-            padding: 10px;
-            color: white;
-            text-align: left;
-            font-size: 14px;
-            margin-top: 10px;
-        }
         input, button {
             padding: 10px;
             font-size: 16px;
@@ -79,6 +68,39 @@
         button:hover {
             background: #e68900;
         }
+
+        /* Animasi pesan */
+        @keyframes floating {
+            0% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-10px) scale(1.1); }
+            100% { transform: translateY(0px) scale(1); }
+        }
+
+        .chat-message {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            animation: floating 2s infinite ease-in-out;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .chat-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .chat-text {
+            color: white;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -90,8 +112,9 @@
             <div class="stat-box">Total Like: <span id="total-likes">0</span></div>
             <div class="stat-box">Total Gift: <span id="total-gifts">0</span></div>
         </div>
-        <div id="chat-box"></div>
     </div>
+
+    <audio id="messageSound" src="notif.mp3"></audio>
 
     <script>
         let ws;
@@ -105,31 +128,80 @@
             ws = new WebSocket("wss://live-port8765.up.railway.app");
             ws.onopen = () => {
                 console.log("WebSocket Terhubung");
-                ws.send(username); // Kirim username ke server
+                ws.send(username);
             };
             
             ws.onmessage = (event) => {
-                const chatBox = document.getElementById('chat-box');
-                const message = document.createElement('p');
-                message.textContent = event.data;
-                chatBox.appendChild(message);
-                chatBox.scrollTop = chatBox.scrollHeight;
-                
-                if (event.data.startsWith("Likes:")) {
-                    document.getElementById("total-likes").textContent = event.data.split(": ")[1];
-                }
-                if (event.data.startsWith("Gifts:")) {
-                    document.getElementById("total-gifts").textContent = event.data.split(": ")[1];
-                }
+                const data = event.data.split("|");
+                const avatarUrl = data[0] || "default-avatar.png";
+                const messageContent = data[1] || "Pesan tidak terbaca";
+
+                const chatMessage = document.createElement('div');
+                chatMessage.classList.add('chat-message');
+
+                const avatarImg = document.createElement('img');
+                avatarImg.classList.add('chat-avatar');
+                avatarImg.src = avatarUrl;
+
+                const chatText = document.createElement('div');
+                chatText.classList.add('chat-text');
+                chatText.textContent = messageContent;
+
+                chatMessage.appendChild(avatarImg);
+                chatMessage.appendChild(chatText);
+                document.body.appendChild(chatMessage);
+
+                // Atur posisi awal secara acak
+                const { x, y } = getRandomPosition();
+                chatMessage.style.left = `${x}px`;
+                chatMessage.style.top = `${y}px`;
+                chatMessage.style.opacity = 1;
+
+                // Gerakkan pesan bolak-balik
+                moveChatMessage(chatMessage);
+
+                // Putar suara notifikasi
+                document.getElementById("messageSound").play();
+
+                // Hapus setelah beberapa detik
+                setTimeout(() => {
+                    chatMessage.style.opacity = 0;
+                    setTimeout(() => chatMessage.remove(), 500);
+                }, 5000);
             };
-            
+
             ws.onerror = (error) => {
                 console.error("WebSocket Error: ", error);
             };
-            
+
             ws.onclose = () => {
                 console.log("WebSocket Terputus");
             };
+        }
+
+        function getRandomPosition() {
+            const maxWidth = window.innerWidth - 300; 
+            const maxHeight = window.innerHeight - 100;
+            return {
+                x: Math.random() * maxWidth,
+                y: Math.random() * maxHeight
+            };
+        }
+
+        function moveChatMessage(element) {
+            let direction = Math.random() > 0.5 ? 1 : -1;
+            let speed = Math.random() * 2 + 1; 
+
+            setInterval(() => {
+                let left = parseFloat(element.style.left) || 0;
+                left += direction * speed;
+
+                if (left >= window.innerWidth - 300 || left <= 0) {
+                    direction *= -1;
+                }
+
+                element.style.left = left + "px";
+            }, 20);
         }
     </script>
 </body>
