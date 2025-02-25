@@ -150,7 +150,7 @@
                 return;
             }
             
-            ws = new WebSocket("ws://localhost:8765"); // Gunakan WebSocket tanpa perbaikan
+            ws = new WebSocket("wss://live-port8765.up.railway.app"); // Gunakan WebSocket tanpa perbaikan
             ws.onopen = () => {
                 console.log("WebSocket Terhubung");
                 ws.send(username);
