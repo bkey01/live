@@ -3,7 +3,6 @@ import random
 import time
 import websockets
 from TikTokLive import TikTokLiveClient
-from TikTokLive.signing import TikTokLiveSigner
 from TikTokLive.events import CommentEvent, ConnectEvent, GiftEvent, FollowEvent, JoinEvent, LikeEvent
 
 USERNAME = ""
@@ -26,9 +25,8 @@ TOTAL_GIFTS = 0
 START_TIME = time.time()
 
 def create_client(username):
-    global client
-    signer = TikTokLiveSigner("http://127.0.0.1:8000")  # Gunakan signer lokal
-    client = TikTokLiveClient(unique_id=username, signer=signer)
+    global client # Gunakan signer lokal
+    client = TikTokLiveClient(unique_id=username)
 
     @client.on(ConnectEvent)
     async def on_connect(event: ConnectEvent):
