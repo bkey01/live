@@ -200,7 +200,7 @@
 
                     const avatarImg = document.createElement('img');
                     avatarImg.classList.add('chat-avatar');
-                    avatarImg.src = avatarUrl || "default_avatar.png";
+                    avatarImg.src = "default_avatar.png";
 
                     const chatText = document.createElement('div');
                     chatText.classList.add('chat-text');
@@ -227,7 +227,7 @@
         function createFloatingMessage(username, messageContent) {
             const floatingMessage = document.createElement("div");
             floatingMessage.classList.add("floating-message");
-            floatingMessage.innerHTML = `<b>${username}:</b> ${messageContent}`;
+            floatingMessage.innerHTML = `<b>${avatarImg}:<b>${username}:</b> ${messageContent}`;
 
             const { x, y } = getRandomPosition();
             floatingMessage.style.left = `${x}px`;
