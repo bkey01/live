@@ -73,7 +73,7 @@
 
         /* Chatbox */
         #chatbox {
-            position: fixed;
+            position: absolute;
             bottom: 20px;
             right: 20px;
             width: 300px;
@@ -145,8 +145,8 @@
         <input type="text" id="username" placeholder="Masukkan username TikTok">
         <button onclick="connectToLive()">Hubungkan</button>
         <div id="stats-container">
-            <div class="stat-box">Total Like: <span id="total-likes">0</span></div>
-            <div class="stat-box">Total Gift: <span id="total-gifts">0</span></div>
+            <div class="stat-box">•: <span id="total-likes">0</span></div>
+            <div class="stat-box">•: <span id="total-gifts">0</span></div>
         </div>
     </div>
 
@@ -227,7 +227,7 @@
         function createFloatingMessage(username, messageContent) {
             const floatingMessage = document.createElement("div");
             floatingMessage.classList.add("floating-message");
-            floatingMessage.innerHTML = `<b>${avatarUrl}:<b>${username}:</b> ${messageContent}`;
+            floatingMessage.innerHTML = `<b>${username}:</b> ${messageContent}`;
 
             const { x, y } = getRandomPosition();
             floatingMessage.style.left = `${x}px`;
