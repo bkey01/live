@@ -20,10 +20,12 @@
             margin: 0;
             overflow: hidden;
         }
+
         h1 {
             font-size: 28px;
             margin-bottom: 20px;
         }
+
         #container {
             background: rgba(255, 255, 255, 0.2);
             padding: 20px;
@@ -35,12 +37,14 @@
             flex-direction: column;
             align-items: center;
         }
+
         #stats-container {
             display: flex;
             justify-content: space-between;
             width: 100%;
             margin-bottom: 10px;
         }
+
         .stat-box {
             width: 48%;
             background: rgba(255, 255, 255, 0.1);
@@ -48,6 +52,7 @@
             border-radius: 8px;
             font-size: 16px;
         }
+
         input, button {
             padding: 10px;
             font-size: 16px;
@@ -57,21 +62,23 @@
             margin: 10px 0;
             width: 100%;
         }
+
         input {
             background: rgba(255, 255, 255, 0.8);
             color: #333;
         }
+
         button {
             background: #ff9800;
             color: white;
             cursor: pointer;
             font-weight: bold;
         }
+
         button:hover {
             background: #e68900;
         }
 
-        /* Chatbox */
         #chatbox {
             position: absolute;
             bottom: 20px;
@@ -85,6 +92,7 @@
             text-align: left;
             color: white;
         }
+
         .chat-message {
             display: flex;
             align-items: center;
@@ -94,23 +102,24 @@
             font-size: 14px;
             margin-bottom: 5px;
         }
+
         .chat-avatar {
             width: 30px;
             height: 30px;
             border-radius: 50%;
             margin-right: 10px;
         }
+
         .chat-text {
             color: white;
             font-weight: bold;
         }
 
-        /* Animasi Floating Pesan */
         @keyframes floating {
-            0% { transform: translateY(0px) scale(1); opacity: 1; }
+            0%, 100% { transform: translateY(0px) scale(1); opacity: 1; }
             50% { transform: translateY(-10px) scale(1.1); opacity: 0.8; }
-            100% { transform: translateY(0px) scale(1); opacity: 1; }
         }
+
         .floating-message {
             position: absolute;
             background: rgba(255, 255, 255, 0.3);
@@ -123,7 +132,7 @@
             opacity: 0;
             transition: opacity 0.5s ease-in-out;
         }
-        /* Notifikasi Gift */
+
         .gift-notification {
             position: fixed;
             bottom: 80px;
@@ -154,13 +163,12 @@
         <h3>Live Chat</h3>
         <div id="messages"></div>
     </div>
+
     <div id="gift-notification" class="gift-notification"></div>
     <audio id="messageSound" src="notif.mp3"></audio>
 
     <script>
         let ws;
-        let totalLikes = 0;
-        let totalGifts = 0;
         function connectToLive() {
             const username = document.getElementById('username').value;
             if (!username) {
@@ -168,7 +176,6 @@
                 return;
             }
 
-            // Jika WebSocket sudah terbuka, tutup dulu
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.close();
                 console.log("WebSocket lama ditutup.");
@@ -185,13 +192,11 @@
                 console.log("Pesan diterima:", event.data);
                 const data = event.data.split("|");
 
+                
                 if (data[0] === "stats") {
-                    // Update total likes & gifts
                     document.getElementById("total-likes").textContent = data[1] || 0;
                     document.getElementById("total-gifts").textContent = data[2] || 0;
-                    console.log(`Total Likes: ${data[1]}, Total Gifts: ${data[2]}`);
                 } else {
-                    // Menampilkan pesan chat
                     const [avatarUrl, sender, messageContent] = data;
                     if (!sender || !messageContent) return;
 
@@ -210,24 +215,19 @@
                     chatMessage.appendChild(chatText);
 
                     document.getElementById("messages").appendChild(chatMessage);
-                    createFloatingMessage(sender, messageContent);
+                    createFloatingMessage(sender, messageContent, avatarUrl);
                     document.getElementById("messageSound").play();
                 }
             };
 
-            ws.onerror = (error) => {
-                console.error("WebSocket Error: ", error);
-            };
-
-            ws.onclose = () => {
-                console.log("WebSocket Terputus");
-            };
+            ws.onerror = (error) => console.error("WebSocket Error: ", error);
+            ws.onclose = () => console.log("WebSocket Terputus");
         }
 
-        function createFloatingMessage(username, messageContent) {
+        function createFloatingMessage(username, messageContent, avatarUrl) {
             const floatingMessage = document.createElement("div");
             floatingMessage.classList.add("floating-message");
-            floatingMessage.innerHTML = `<b>${username}:</b> ${messageContent}`;
+            floatingMessage.innerHTML = `<img class="chat-avatar" src="${avatarUrl || 'default_avatar.png'}"> <b>${username}:</b> ${messageContent}`;
 
             const { x, y } = getRandomPosition();
             floatingMessage.style.left = `${x}px`;
@@ -235,11 +235,7 @@
             floatingMessage.style.opacity = 1;
 
             document.body.appendChild(floatingMessage);
-
-            setTimeout(() => {
-                floatingMessage.style.opacity = 0;
-                setTimeout(() => floatingMessage.remove(), 500);
-            }, 5000);
+            setTimeout(() => floatingMessage.remove(), 5000);
         }
 
         function getRandomPosition() {
