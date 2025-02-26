@@ -151,9 +151,10 @@
                 return;
             }
 
-            // Jika WebSocket sudah terhubung, tutup dulu
-            if (ws) {
-                ws.close();
+            // Jika WebSocket sudah terbuka, tutup dulu
+            if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.close();
+            console.log("WebSocket lama ditutup.");
             }
 
             ws = new WebSocket("wss://live-port8765.up.railway.app");
