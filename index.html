@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TikTok Live Chat</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
         body {
             font-family: 'Poppins', sans-serif;
             background: linear-gradient(to right, #1e3c72, #2a5298);
@@ -105,9 +107,9 @@
 
         /* Animasi Floating Pesan */
         @keyframes floating {
-            0% { transform: translateY(0px) scale(1); }
-            50% { transform: translateY(-10px) scale(1.1); }
-            100% { transform: translateY(0px) scale(1); }
+            0% { transform: translateY(0px) scale(1); opacity: 1; }
+            50% { transform: translateY(-10px) scale(1.1); opacity: 0.8; }
+            100% { transform: translateY(0px) scale(1); opacity: 1; }
         }
         .floating-message {
             position: absolute;
@@ -120,6 +122,20 @@
             animation: floating 2s infinite ease-in-out;
             opacity: 0;
             transition: opacity 0.5s ease-in-out;
+        }
+        /* Notifikasi Gift */
+        .gift-notification {
+            position: fixed;
+            bottom: 80px;
+            left: 20px;
+            background: #ffcc00;
+            color: #333;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
         }
     </style>
 </head>
@@ -138,12 +154,13 @@
         <h3>Live Chat</h3>
         <div id="messages"></div>
     </div>
-
+    <div id="gift-notification" class="gift-notification"></div>
     <audio id="messageSound" src="notif.mp3"></audio>
 
     <script>
         let ws;
-        
+        let totalLikes = 0;
+        let totalGifts = 0;
         function connectToLive() {
             const username = document.getElementById('username').value;
             if (!username) {
@@ -153,8 +170,8 @@
 
             // Jika WebSocket sudah terbuka, tutup dulu
             if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.close();
-            console.log("WebSocket lama ditutup.");
+                ws.close();
+                console.log("WebSocket lama ditutup.");
             }
 
             ws = new WebSocket("wss://live-port8765.up.railway.app");
@@ -169,11 +186,12 @@
                 const data = event.data.split("|");
 
                 if (data[0] === "stats") {
-                    // Jika data adalah statistik
-                    document.getElementById("total-likes").textContent = data[1];
-                    document.getElementById("total-gifts").textContent = data[2];
+                    // Update total likes & gifts
+                    document.getElementById("total-likes").textContent = data[1] || 0;
+                    document.getElementById("total-gifts").textContent = data[2] || 0;
+                    console.log(`Total Likes: ${data[1]}, Total Gifts: ${data[2]}`);
                 } else {
-                    // Jika data adalah pesan chat
+                    // Menampilkan pesan chat
                     const [avatarUrl, sender, messageContent] = data;
                     if (!sender || !messageContent) return;
 
@@ -192,9 +210,7 @@
                     chatMessage.appendChild(chatText);
 
                     document.getElementById("messages").appendChild(chatMessage);
-
                     createFloatingMessage(sender, messageContent);
-
                     document.getElementById("messageSound").play();
                 }
             };
@@ -231,6 +247,15 @@
                 x: Math.random() * (window.innerWidth - 200),
                 y: Math.random() * (window.innerHeight - 100)
             };
+        }
+        function showGiftNotification(username, giftName) {
+            const giftBox = document.getElementById("gift-notification");
+            giftBox.textContent = `${username} mengirim hadiah: ${giftName}`;
+            giftBox.style.display = "block";
+
+            setTimeout(() => {
+                giftBox.style.display = "none";
+            }, 3000);
         }
     </script>
 </body>
