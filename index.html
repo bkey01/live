@@ -143,45 +143,59 @@
 
     <script>
         let ws;
+        
         function connectToLive() {
             const username = document.getElementById('username').value;
             if (!username) {
                 alert('Masukkan username TikTok!');
                 return;
             }
-            
-            ws = new WebSocket("wss://live-port8765.up.railway.app"); // Gunakan WebSocket tanpa perbaikan
+
+            // Jika WebSocket sudah terhubung, tutup dulu
+            if (ws) {
+                ws.close();
+            }
+
+            ws = new WebSocket("wss://live-port8765.up.railway.app");
+
             ws.onopen = () => {
                 console.log("WebSocket Terhubung");
                 ws.send(username);
             };
-            
+
             ws.onmessage = (event) => {
                 console.log("Pesan diterima:", event.data);
-                const [avatarUrl, username, messageContent] = event.data.split("|");
-                if (!username || !messageContent) return;
+                const data = event.data.split("|");
 
-                // Tambahkan ke chatbox
-                const chatMessage = document.createElement('div');
-                chatMessage.classList.add('chat-message');
+                if (data[0] === "stats") {
+                    // Jika data adalah statistik
+                    document.getElementById("total-likes").textContent = data[1];
+                    document.getElementById("total-gifts").textContent = data[2];
+                } else {
+                    // Jika data adalah pesan chat
+                    const [avatarUrl, sender, messageContent] = data;
+                    if (!sender || !messageContent) return;
 
-                const avatarImg = document.createElement('img');
-                avatarImg.classList.add('chat-avatar');
-                avatarImg.src = avatarUrl || "default_avatar.png";
+                    const chatMessage = document.createElement('div');
+                    chatMessage.classList.add('chat-message');
 
-                const chatText = document.createElement('div');
-                chatText.classList.add('chat-text');
-                chatText.innerHTML = `<b>${username}:</b> ${messageContent}`;
+                    const avatarImg = document.createElement('img');
+                    avatarImg.classList.add('chat-avatar');
+                    avatarImg.src = avatarUrl || "default_avatar.png";
 
-                chatMessage.appendChild(avatarImg);
-                chatMessage.appendChild(chatText);
+                    const chatText = document.createElement('div');
+                    chatText.classList.add('chat-text');
+                    chatText.innerHTML = `<b>${sender}:</b> ${messageContent}`;
 
-                document.getElementById("messages").appendChild(chatMessage);
+                    chatMessage.appendChild(avatarImg);
+                    chatMessage.appendChild(chatText);
 
-                // Tambahkan efek pesan melayang
-                createFloatingMessage(username, messageContent);
+                    document.getElementById("messages").appendChild(chatMessage);
 
-                document.getElementById("messageSound").play();
+                    createFloatingMessage(sender, messageContent);
+
+                    document.getElementById("messageSound").play();
+                }
             };
 
             ws.onerror = (error) => {
@@ -197,8 +211,7 @@
             const floatingMessage = document.createElement("div");
             floatingMessage.classList.add("floating-message");
             floatingMessage.innerHTML = `<b>${username}:</b> ${messageContent}`;
-            
-            // Posisi acak
+
             const { x, y } = getRandomPosition();
             floatingMessage.style.left = `${x}px`;
             floatingMessage.style.top = `${y}px`;
