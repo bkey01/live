@@ -146,6 +146,24 @@
             display: none;
             animation: fadeIn 0.5s ease-in-out;
         }
+        .gift-animation {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: none;
+        z-index: 1000;
+        }
+        .fade-in-out {
+        animation: fadeInOut 3s forwards;
+        }
+        @keyframes fadeInOut {
+        0% { opacity: 0; }
+        10% { opacity: 1; }
+        90% { opacity: 1; }
+        100% { opacity: 0; }
+        }
+
     </style>
 </head>
 <body>
@@ -164,7 +182,11 @@
         <div id="messages"></div>
     </div>
 
+    <div id="gift-animation" class="gift-animation">
+    <img id="gift-image" src="" alt="Gift Animation"></div>
+    
     <div id="gift-notification" class="gift-notification"></div>
+    
     <audio id="messageSound" src="notif.mp3"></audio>
 
     <script>
@@ -197,7 +219,7 @@
                     document.getElementById("total-likes").textContent = data[1] || 0;
                     document.getElementById("total-gifts").textContent = data[2] || 0;
                 } else {
-                    const [avatarUrl, sender, messageContent] = data;
+                    const [avatarUrl, sender, messageContent, gifType] = data;
                     if (!sender || !messageContent) return;
 
                     const chatMessage = document.createElement('div');
@@ -216,6 +238,11 @@
 
                     document.getElementById("messages").appendChild(chatMessage);
                     createFloatingMessage(sender, messageContent, avatarUrl);
+                    // Cek jika ada gift besar
+                    if (giftType === "Singa" || giftType === "Mawar")
+                    {
+                    showGiftAnimation(giftType);
+                    }
                     document.getElementById("messageSound").play();
                 }
             };
@@ -223,7 +250,7 @@
             ws.onerror = (error) => console.error("WebSocket Error: ", error);
             ws.onclose = () => console.log("WebSocket Terputus");
         }
-
+        
         function createFloatingMessage(username, messageContent, avatarUrl) {
             const floatingMessage = document.createElement("div");
             floatingMessage.classList.add("floating-message");
@@ -253,6 +280,62 @@
                 giftBox.style.display = "none";
             }, 3000);
         }
+        function showGiftAnimation(giftType) {
+             const giftAnimation = document.getElementById("gift-animation");
+             const giftImage = document.getElementById("gift-image");
+             if (giftType === "Singa") {
+                 giftImage.src = "fire_animation.gif"; // Ganti dengan path GIF api
+             } else if (giftType === "Mawar") {
+                 giftImage.src = "sparkle_animation.gif"; // Ganti dengan path GIF sparkle
+             }
+             giftAnimation.style.display = "block";
+             giftAnimation.classList.add("fade-in-out");
+             // Sembunyikan setelah animasi selesai
+             setTimeout(() => {
+                 giftAnimation.style.display = "none";
+                 giftAnimation.classList.remove("fade-in-out");
+             }, 3000); // Durasi sesuai dengan animasi
+        }
+        let leaderboard = {
+        topGifters: {},
+        topChatters: {}
+        };
+        
+        function updateLeaderboard(username, giftType = null) {
+                if (giftType) {
+        // Update top gifters
+                     leaderboard.topGifters[username] = (leaderboard.topGifters[username] || 0) + 1;
+                } else {
+        // Update top chatters
+                     leaderboard.topChatters[username] = (leaderboard.topChatters[username] || 0) + 1;
+                }
+                displayLeaderboard();
+        }
+        function displayLeaderboard() {
+                let giftersList = Object.entries(leaderboard.topGifters)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([user, count]) => `<li>${user}: ${count} gifts</li>`)
+                      .join("");
+
+                let chattersList = Object.entries(leaderboard.topChatters)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([user, count]) => `<li>${user}: ${count} chats</li>`)
+                      .join("");
+
+                document.getElementById("top-gifters").innerHTML = giftersList;
+                document.getElementById("top-chatters").innerHTML = chattersList;
+        }
+        // Tambahkan elemen untuk leaderboard di HTML
+       document.body.insertAdjacentHTML("beforeend", `
+                <div id="leaderboard" style="position:fixed; top:10px; left:10px; background:rgba(0,0,0,0.7); padding:10px; border-radius:8px; color:white;">
+                        <h3>Leaderboard</h3>
+                        <h4>Top Gifters</h4>
+                        <ul id="top-gifters"></ul>
+                        <h4>Top Chatters</h4>
+                        <ul id="top-chatters"></ul>
+                </div>
+        `);
+
     </script>
 </body>
 </html>
